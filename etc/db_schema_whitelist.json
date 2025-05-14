@@ -1,0 +1,18 @@
+{
+    "networld_order_processing_status": {
+        "column": {
+            "id": true,
+            "order_id": true,
+            "old_status": true,
+            "current_status": true,
+            "created_at": true,
+            "updated_at": true
+        },
+        "index": {
+            "NETWORLD_ORDER_PROCESSING_STATUS_ID": true
+        },
+        "constraint": {
+            "PRIMARY": true
+        }
+    }
+}

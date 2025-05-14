@@ -1,0 +1,21 @@
+{
+    "name": "networld/module-custom-order-processing",
+    "version": "1.0.0",
+    "description": "Custom module for updating order status via REST API and track order status changes in database.",
+    "type": "magento2-module",
+    "require": {
+        "magento/framework": "*",
+        "magento/module-backend": "*",
+        "magento/module-config": "*",
+        "magento/module-store": "*",
+        "magento/module-email": "*"
+    },
+    "autoload": {
+        "files": [
+            "registration.php"
+        ],
+        "psr-4": {
+            "Networld\\CustomOrderProcessing\\": ""
+        }
+    }
+}
