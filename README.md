@@ -9,13 +9,13 @@ Custom Module for changing order status via Magento REST API and track change hi
     => Order Status change history tracking: Captures and logs order status changes (including order ID, old status, new status, and timestamp) into a custom database table.
 
 ## Module Details
-    Namespace: Networld\CustomOrderProcessing
+    Namespace: Networld/CustomOrderProcessing
     Module Name: CustomOrderProcessing
     Database Table: networld_order_processing_status
 
 ## Installation
     Place the Module Files:
-    Copy the module folder (Networld\CustomOrderProcessing) into the app/code/ directory of your Magento 2 installation.
+    Copy the module folder (Networld/CustomOrderProcessing) into the app/code/ directory of your Magento 2 installation.
     Final path: app/code/Networld/CustomOrderProcessing
     Enable the Module: Run the following commands from the Magento root directory:
 
@@ -38,7 +38,7 @@ Custom Module for changing order status via Magento REST API and track change hi
 
     Response: Returns a success message or an error if the order is not valid or not fouind or the status update fails.
 
-    => Use bearer toekn as Magento’s API authentication.
+    => Use bearer token as Magento’s API authentication.
     To generate admin token via REST API, send a POST request to the following endpoint. It will return the token:
 
     Endpoint: V1/integration/admin/token
