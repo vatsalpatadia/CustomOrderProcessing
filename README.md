@@ -73,7 +73,7 @@ Custom Module for changing order status via Magento REST API and track change hi
 ## UNIT test coverage scenerios, please run below commands to execute this module specific  unit test cases
     Navigate to your project root directory from terminal and run below command for running unit test.
 
-    vendor/bin/phpunit -c dev/tests/unit/phpunit.xml.dist app/code/Networld/CustomOrderProcessing/Test/Unit/Model/Api/OrderStatusUpdateSaveTest.php
+    vendor/bin/phpunit -c dev/tests/unit/phpunit.xml.dist app/code/Networld/CustomOrderProcessing/Test/Unit/Model/Api/OrderStatusUpdateSave.php
 
     
 
