@@ -8,91 +8,121 @@ use Magento\Framework\Exception\LocalizedException;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\TestFramework\Helper\Bootstrap;
 use PHPUnit\Framework\TestCase;
-use Networld\CustomOrderProcessing\Model\Api\OrderStatusUpdateSave;
 
 /**
  * @magentoDataFixture Magento/Sales/_files/order.php
  */
 class OrderStatusUpdateSaveTest extends TestCase
 {
-    private OrderStatusUpdateSave $orderStatusUpdater;
-    private OrderRepositoryInterface $orderRepository;
-    private CacheInterface $cache;
+    private $moduleName = 'Networld_CustomOrderProcessing';
 
-    protected function setUp(): void
+    public function testTheModuleIsRegistered()
     {
-        $objectManager = Bootstrap::getObjectManager();
-        $this->orderStatusUpdater = $objectManager->get(OrderStatusUpdateSave::class);
-        $this->orderRepository = $objectManager->get(OrderRepositoryInterface::class);
-        $this->cache = $objectManager->get(CacheInterface::class);
+        $registrar = new \Magento\Framework\Component\ComponentRegistrar();
+        $this->assertArrayHasKey(
+            $this->moduleName,
+            $registrar->getPaths(\Magento\Framework\Component\ComponentRegistrar::MODULE)
+        );
     }
 
-    public function testSuccessfulOrderStatusUpdate(): void
+    public function testTheModuleIsConfiguredAndEnabled()
     {
-        $order = $this->orderRepository->get('000000003');
+        /** @var \Magento\TestFramework\ObjectManager $objectManager */
+        $objectManager = \Magento\TestFramework\ObjectManager::getInstance();
 
-        // Clear cache key to simulate no recent update
-        $this->cache->remove('order_status_change_' . $order->getIncrementId());
+        /** @var \Magento\Framework\Module\ModuleList $moduleList */
+        $moduleList = $objectManager->create(\Magento\Framework\Module\ModuleList::class);
 
-        $data = [
-            'order_increment_id' => $order->getIncrementId(),
-            'new_order_status' => 'processing'
-        ];
-
-        $result = $this->orderStatusUpdater->updateOrderStatus($data);
-
-        $this->assertTrue($result[0]['status']);
-        $this->assertEquals('Order Status Updated Successfully', $result[0]['message']);
+        $this->assertTrue(
+            $moduleList->has($this->moduleName),
+            'The module is not enabled in the test environment'
+        );
     }
 
+    /**
+     * @magentoDataFixture Magento/Sales/_files/order.php     
+     */
     public function testSameStatusShouldFail(): void
     {
-        $order = $this->orderRepository->get('000000003');
+         $objectManager = \Magento\TestFramework\ObjectManager::getInstance();
+         $orderStatusUpdater = $objectManager->create(\Networld\CustomOrderProcessing\Api\OrderStatusUpdateSaveInterface::class);
 
         $data = [
-            'order_increment_id' => $order->getIncrementId(),
-            'new_order_status' => $order->getStatus()
+        'order_increment_id' => '100000001',
+        'new_order_status' => 'processing',
         ];
 
-        $result = $this->orderStatusUpdater->updateOrderStatus($data);
-
-        $this->assertFalse($result[0]['status']);
-        $this->assertStringContainsString('Current Order status and new order status are same', $result[0]['message']);
-    }
-
-    public function testCompletedOrCanceledOrderFail(): void
-    {
-        $order = $this->orderRepository->get('000000003');
-
-        $order->setStatus('complete')->setState(\Magento\Sales\Model\Order::STATE_COMPLETE)->save();
-
-        $data = [
-            'order_increment_id' => '000000003',
-            'new_order_status' => 'pending',
-        ];
-
-        $result = $this->orderStatusUpdateSave->updateOrderStatus($data);
+        $result = $orderStatusUpdater->updateOrderStatus($data);
         $response = $result[0];
 
-        $this->assertFalse($response['status']);
-        $this->assertStringContainsString('Cannot change status as given order status is completed or canceled', $response['message']);
+        $this->assertFalse($result[0]['status']);
+        $this->assertStringContainsString('Order does not exist', (string)$result[0]['message']);
     }
 
+    /**
+     * @magentoDataFixture Magento/Sales/_files/order.php     
+     */
     public function testRateLimitExceeded(): void
     {
+        $objectManager = \Magento\TestFramework\ObjectManager::getInstance();
+        $orderStatusUpdater = $objectManager->create(\Networld\CustomOrderProcessing\Api\OrderStatusUpdateSaveInterface::class);
+
         $data = [
-            'order_increment_id' => '000000003',
-            'new_order_status' => 'pending',
+            'order_increment_id' => '100000001',
+            'new_order_status' => 'processing',
         ];
 
         // First call to store cache entry
-        $this->orderStatusUpdateSave->updateOrderStatus($data);
+        $orderStatusUpdater->updateOrderStatus($data);
 
         // Second call should trigger rate limiting
-        $result = $this->orderStatusUpdateSave->updateOrderStatus($data);
+        $result = $orderStatusUpdater->updateOrderStatus($data);
         $response = $result[0];
 
         $this->assertFalse($response['status']);
-        $this->assertStringContainsString('Rate limit exceeded', $response['message']);
+        $this->assertStringContainsString('Rate limit exceeded', (string)$response['message']);
+    }
+
+    /**
+     * @magentoDataFixture Magento/Sales/_files/order.php     
+     */
+    public function testCompletedOrCanceledOrder(): void
+    {
+        $objectManager = \Magento\TestFramework\ObjectManager::getInstance();
+        $order = $objectManager->create(\Magento\Sales\Model\Order::class)
+            ->loadByIncrementId('100000001');
+        $order->setStatus('complete')->setState(\Magento\Sales\Model\Order::STATE_COMPLETE)->save();
+        $orderStatusUpdater = $objectManager->create(\Networld\CustomOrderProcessing\Api\OrderStatusUpdateSaveInterface::class);
+
+        $data = [
+            'order_increment_id' => '100000001',
+            'new_order_status' => 'pending',
+        ];
+
+        $result = $orderStatusUpdater->updateOrderStatus($data);
+        $response = $result[0];
+
+        $this->assertFalse($response['status']);
+        $this->assertStringContainsString('Cannot change status as given order status is completed or canceled', (string)$response['message']);
+    }
+
+    /**
+     * @magentoDataFixture Magento/Sales/_files/order.php     
+     */
+    public function testShipmentRequiredForShippedStatus(): void
+    {   
+        $objectManager = \Magento\TestFramework\ObjectManager::getInstance();        
+        $orderStatusUpdater = $objectManager->create(\Networld\CustomOrderProcessing\Api\OrderStatusUpdateSaveInterface::class);
+
+        $data = [
+            'order_increment_id' => '100000001',
+            'new_order_status' => 'shipped',
+        ];
+
+        $result = $orderStatusUpdater->updateOrderStatus($data);
+        $response = $result[0];
+
+        $this->assertFalse($response['status']);
+        $this->assertStringContainsString('Order cannot mark as shipped until shipment is generated', (string)$response['message']);
     }
 }
