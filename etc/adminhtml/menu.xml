@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Backend:etc/menu.xsd">
+    <menu>
+        <add id="Networld_CustomOrderProcessing::order_status" title="Networld"
+             module="Networld_CustomOrderProcessing" sortOrder="10"
+             resource="Networld_CustomOrderProcessing::order_status"/>
+        <add id="Networld_CustomOrderProcessing::order_status_listing" title="Order Status Change History"
+             module="Networld_CustomOrderProcessing"
+             sortOrder="10"
+             parent="Networld_CustomOrderProcessing::order_status"
+             action="networld/orderstatus/listing"
+             resource="Networld_CustomOrderProcessing::order_status_listing"/>
+    </menu>
+</config>

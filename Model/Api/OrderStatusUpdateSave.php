@@ -13,38 +13,34 @@ use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Store\Model\ScopeInterface;
 use Psr\Log\LoggerInterface;
 use Networld\CustomOrderProcessing\Api\OrderStatusUpdateSaveInterface;
-use Magento\Framework\HTTP\PhpEnvironment\RemoteAddress;
 
 class OrderStatusUpdateSave implements OrderStatusUpdateSaveInterface
 {
     const MESSAGE = 'message';
     const STATUS = 'status';
     const XML_PATH_CUSTOM_ORDER_STATUS_UPDATE_ENABLE = 'networld_general_config/general/enable';
+    const XML_PATH_CUSTOM_ORDER_STATUS_RATE_LIMIT_TIMEOUT = 'networld_general_config/general/rate_limit_timeout';
     private ScopeConfigInterface $scopeConfigInterface;
     private OrderRepositoryInterface $orderRepository;
     private LoggerInterface $logger;
     private CacheInterface $cache;
-    private RemoteAddress $remoteAddress;
 
     /**
      * @param ScopeConfigInterface $scopeConfigInterface
      * @param OrderRepositoryInterface $orderRepository
      * @param LoggerInterface $logger
      * @param CacheInterface $cache
-     * @param RemoteAddress $remoteAddress
      */
     public function __construct(
         ScopeConfigInterface $scopeConfigInterface,
         OrderRepositoryInterface $orderRepository,
         LoggerInterface $logger,
-        CacheInterface $cache,
-        RemoteAddress $remoteAddress
+        CacheInterface $cache
     ) {
         $this->scopeConfigInterface = $scopeConfigInterface;
         $this->orderRepository = $orderRepository;
         $this->logger = $logger;
         $this->cache = $cache;
-        $this->remoteAddress = $remoteAddress;
     }
 
     /**
@@ -66,6 +62,17 @@ class OrderStatusUpdateSave implements OrderStatusUpdateSaveInterface
                 }
                 $newState = $this->getStateForOrderStatus($order, $newOrderStatus);
                 
+                // Implemented rate limiting to restrict excessive API usage; added caching to reduce redundant processing                
+                $orderStatusRateLimit = $this->scopeConfigInterface->getValue(self::XML_PATH_CUSTOM_ORDER_STATUS_RATE_LIMIT_TIMEOUT,
+                    ScopeInterface::SCOPE_STORE);                
+                $cacheKey = 'order_status_change_' . $orderId;
+                $this->logger->debug('Cache key used: ' . $cacheKey);
+                if ($this->cache->load($cacheKey)) {
+                    throw new LocalizedException(__('Rate limit exceeded for order status updates. Please try again after some time.'));
+                }
+                
+                $this->cache->save('1', $cacheKey, [], $orderStatusRateLimit);
+
                 // check current order status and new order status
                 $currentStatus = $order->getStatus();
                 if (strtolower($newOrderStatus) === $currentStatus) {
