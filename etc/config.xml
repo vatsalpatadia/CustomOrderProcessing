@@ -5,6 +5,7 @@
         <networld_general_config>
             <general>
                 <enable>1</enable>
+                <rate_limit_timeout>30</rate_limit_timeout>
             </general>
         </networld_general_config>
     </default>

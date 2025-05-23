@@ -56,7 +56,7 @@ class OrderStatusUpdateSaveTest extends TestCase
         $response = $result[0];
 
         $this->assertFalse($result[0]['status']);
-        $this->assertStringContainsString('Order does not exist', (string)$result[0]['message']);
+        $this->assertStringContainsString('Current Order status and new order status are same, Please modify the status', (string)$result[0]['message']);
     }
 
     /**
@@ -80,7 +80,7 @@ class OrderStatusUpdateSaveTest extends TestCase
         $response = $result[0];
 
         $this->assertFalse($response['status']);
-        $this->assertStringContainsString('Rate limit exceeded', (string)$response['message']);
+        $this->assertStringContainsString('Rate limit exceeded for order status updates. Please try again after some time.', (string)$response['message']);
     }
 
     /**
@@ -96,7 +96,7 @@ class OrderStatusUpdateSaveTest extends TestCase
 
         $data = [
             'order_increment_id' => '100000001',
-            'new_order_status' => 'pending',
+            'new_order_status' => 'complete',
         ];
 
         $result = $orderStatusUpdater->updateOrderStatus($data);
