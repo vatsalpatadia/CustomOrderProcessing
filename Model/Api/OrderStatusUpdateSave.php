@@ -13,6 +13,7 @@ use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Store\Model\ScopeInterface;
 use Psr\Log\LoggerInterface;
 use Networld\CustomOrderProcessing\Api\OrderStatusUpdateSaveInterface;
+use Magento\Sales\Api\Data\OrderInterfaceFactory;
 
 class OrderStatusUpdateSave implements OrderStatusUpdateSaveInterface
 {
@@ -22,23 +23,27 @@ class OrderStatusUpdateSave implements OrderStatusUpdateSaveInterface
     const XML_PATH_CUSTOM_ORDER_STATUS_RATE_LIMIT_TIMEOUT = 'networld_general_config/general/rate_limit_timeout';
     private ScopeConfigInterface $scopeConfigInterface;
     private OrderRepositoryInterface $orderRepository;
+    private OrderInterfaceFactory $orderFactory;
     private LoggerInterface $logger;
     private CacheInterface $cache;
 
     /**
      * @param ScopeConfigInterface $scopeConfigInterface
      * @param OrderRepositoryInterface $orderRepository
+     * @param OrderInterfaceFactory $orderFactory
      * @param LoggerInterface $logger
      * @param CacheInterface $cache
      */
     public function __construct(
         ScopeConfigInterface $scopeConfigInterface,
         OrderRepositoryInterface $orderRepository,
+        OrderInterfaceFactory $orderFactory,
         LoggerInterface $logger,
         CacheInterface $cache
     ) {
         $this->scopeConfigInterface = $scopeConfigInterface;
         $this->orderRepository = $orderRepository;
+        $this->orderFactory = $orderFactory;
         $this->logger = $logger;
         $this->cache = $cache;
     }
@@ -55,11 +60,13 @@ class OrderStatusUpdateSave implements OrderStatusUpdateSaveInterface
             $newOrderStatus = trim($data['new_order_status']) ?? null;
             $status = $this->scopeConfigInterface->getValue(self::XML_PATH_CUSTOM_ORDER_STATUS_UPDATE_ENABLE,
                 ScopeInterface::SCOPE_STORE);
-            if ($status) {
-                $order = $this->orderRepository->get($orderId);
+            if ($status) {    
+
+                $order = $this->orderFactory->create()->loadByIncrementId($orderId);
                 if(!$order){
                     throw new LocalizedException(__('Order does not exist.'));
                 }
+
                 $newState = $this->getStateForOrderStatus($order, $newOrderStatus);
                 
                 // Implemented rate limiting to restrict excessive API usage; added caching to reduce redundant processing                
@@ -70,7 +77,7 @@ class OrderStatusUpdateSave implements OrderStatusUpdateSaveInterface
                 if ($this->cache->load($cacheKey)) {
                     throw new LocalizedException(__('Rate limit exceeded for order status updates. Please try again after some time.'));
                 }
-                
+
                 $this->cache->save('1', $cacheKey, [], $orderStatusRateLimit);
 
                 // check current order status and new order status

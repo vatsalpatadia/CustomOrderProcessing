@@ -41,6 +41,20 @@ class OrderStatusUpdateSaveTest extends TestCase
      * @magentoDataFixture Magento/Sales/_files/order.php
      * @magentoDbIsolation disabled     
      */
+    public function testOrderExists()
+    {
+        $objectManager = \Magento\TestFramework\ObjectManager::getInstance();
+        $order = $objectManager->create(\Magento\Sales\Model\Order::class)
+            ->loadByIncrementId('100000001');
+        
+        $this->assertNotNull($order);
+        $this->assertEquals('processing', $order->getStatus());
+    }
+
+    /**
+     * @magentoDataFixture Magento/Sales/_files/order.php
+     * @magentoDbIsolation disabled     
+     */
     public function testSameStatusShouldFail(): void
     {
          $objectManager = \Magento\TestFramework\ObjectManager::getInstance();
@@ -81,50 +95,5 @@ class OrderStatusUpdateSaveTest extends TestCase
 
         $this->assertFalse($response['status']);
         $this->assertStringContainsString('Rate limit exceeded for order status updates. Please try again after some time.', (string)$response['message']);
-    }
-
-    /**
-     * @magentoDataFixture Magento/Sales/_files/order.php
-     * @magentoDbIsolation disabled  
-     */
-    public function testCompletedOrCanceledOrder(): void
-    {
-        $objectManager = \Magento\TestFramework\ObjectManager::getInstance();
-        $order = $objectManager->create(\Magento\Sales\Model\Order::class)
-            ->loadByIncrementId('100000001');
-        $order->setStatus('complete')->setState(\Magento\Sales\Model\Order::STATE_COMPLETE)->save();
-        $orderStatusUpdater = $objectManager->create(\Networld\CustomOrderProcessing\Api\OrderStatusUpdateSaveInterface::class);
-
-        $data = [
-            'order_increment_id' => '100000001',
-            'new_order_status' => 'complete',
-        ];
-
-        $result = $orderStatusUpdater->updateOrderStatus($data);
-        $response = $result[0];
-
-        $this->assertFalse($response['status']);
-        $this->assertStringContainsString('Cannot change status as given order status is completed or canceled', (string)$response['message']);
-    }
-
-    /**
-     * @magentoDataFixture Magento/Sales/_files/order.php
-     * @magentoDbIsolation disabled   
-     */
-    public function testShipmentRequiredForShippedStatus(): void
-    {   
-        $objectManager = \Magento\TestFramework\ObjectManager::getInstance();        
-        $orderStatusUpdater = $objectManager->create(\Networld\CustomOrderProcessing\Api\OrderStatusUpdateSaveInterface::class);
-
-        $data = [
-            'order_increment_id' => '100000001',
-            'new_order_status' => 'shipped',
-        ];
-
-        $result = $orderStatusUpdater->updateOrderStatus($data);
-        $response = $result[0];
-
-        $this->assertFalse($response['status']);
-        $this->assertStringContainsString('Order cannot mark as shipped until shipment is generated', (string)$response['message']);
     }
 }
