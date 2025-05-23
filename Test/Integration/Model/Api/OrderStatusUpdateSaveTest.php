@@ -9,9 +9,7 @@ use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\TestFramework\Helper\Bootstrap;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @magentoDataFixture Magento/Sales/_files/order.php
- */
+
 class OrderStatusUpdateSaveTest extends TestCase
 {
     private $moduleName = 'Networld_CustomOrderProcessing';
@@ -40,7 +38,8 @@ class OrderStatusUpdateSaveTest extends TestCase
     }
 
     /**
-     * @magentoDataFixture Magento/Sales/_files/order.php     
+     * @magentoDataFixture Magento/Sales/_files/order.php
+     * @magentoDbIsolation disabled     
      */
     public function testSameStatusShouldFail(): void
     {
@@ -60,7 +59,8 @@ class OrderStatusUpdateSaveTest extends TestCase
     }
 
     /**
-     * @magentoDataFixture Magento/Sales/_files/order.php     
+     * @magentoDataFixture Magento/Sales/_files/order.php
+     * @magentoDbIsolation disabled     
      */
     public function testRateLimitExceeded(): void
     {
@@ -84,7 +84,8 @@ class OrderStatusUpdateSaveTest extends TestCase
     }
 
     /**
-     * @magentoDataFixture Magento/Sales/_files/order.php     
+     * @magentoDataFixture Magento/Sales/_files/order.php
+     * @magentoDbIsolation disabled  
      */
     public function testCompletedOrCanceledOrder(): void
     {
@@ -107,7 +108,8 @@ class OrderStatusUpdateSaveTest extends TestCase
     }
 
     /**
-     * @magentoDataFixture Magento/Sales/_files/order.php     
+     * @magentoDataFixture Magento/Sales/_files/order.php
+     * @magentoDbIsolation disabled   
      */
     public function testShipmentRequiredForShippedStatus(): void
     {   
